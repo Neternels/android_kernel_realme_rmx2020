@@ -144,3 +144,5 @@ obj-$(CONFIG_VIRTUAL_RESERVE_MEMORY) += resmap_account.o
 #/*Peifeng.Li@PSW.Kernel.BSP.Memory, 2020/04/22,virtual reserve memory*/
 obj-$(CONFIG_VIRTUAL_RESERVE_MEMORY) += vm_anti_fragment.o
 #endif /*defined(VENDOR_EDIT)
+
+CFLAGS_kmemleak.o += -DCONFIG_DEBUG_FS
