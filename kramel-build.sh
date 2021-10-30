@@ -184,13 +184,9 @@ DATE=$(TZ=GMT-8 date +"%Y%m%d-%H%M")
 	if [ $COMPILER = "clang" ]
 	then
 	        msg "|| Cloning Clang-9 ||"
-	        git clone --depth=1 https://github.com/sarthakroy2002/android_prebuilts_clang_host_linux-x86_clang-6443078 clang-llvm
+	        git clone --depth=1 https://github.com/kdrag0n/proton-clang.git clang-llvm
 		# Toolchain Directory defaults to clang-llvm
 		TC_DIR=$KERNEL_DIR/clang-llvm
-		git clone --depth=1 https://github.com/sarthakroy2002/prebuilts_gcc_linux-x86_aarch64_aarch64-linaro-7 gcc64
-		git clone --depth=1 https://github.com/sarthakroy2002/linaro_arm-linux-gnueabihf-7.5 gcc32
-		GCC_DIR=$KERNEL_DIR/gcc64
-		GCC_DIR=$KERNEL_DIR/gcc32
 	fi
 
 	msg "|| Cloning Anykernel ||"
@@ -213,7 +209,7 @@ exports() {
 	if [ $COMPILER = "clang" ]
 	then
 		KBUILD_COMPILER_STRING=$("$TC_DIR"/bin/clang --version | head -n 1 | perl -pe 's/\(http.*?\)//gs' | sed -e 's/  */ /g' -e 's/[[:space:]]*$//')
-		PATH=$TC_DIR/bin/$GCC64_DIR/bin/$GCC32_DIR/bin/:/usr/bin/:$PATH
+		PATH=$TC_DIR/bin/:/usr/bin/:$PATH
 	elif [ $COMPILER = "gcc" ]
 	then
 		KBUILD_COMPILER_STRING=$("$GCC64_DIR"/bin/aarch64-elf-gcc --version | head -n 1)
@@ -282,10 +278,12 @@ build_kernel() {
 	if [ $COMPILER = "clang" ]
 	then
 		MAKE+=(
-			CROSS_COMPILE="$KERNEL_DIR"/gcc64/bin/aarch64-linux-gnu- \
-			CROSS_COMPILE_ARM32="$KERNEL_DIR"/gcc32/bin/arm-linux-gnueabihf- \
-			CKANG_TRIPLE="$TC_DIR"/bin/aarch64-linux-gnu- \
+			CROSS_COMPILE=aarch64-linux-gnu- \
+			CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+			CKANG_TRIPLE=aarch64-linux-gnu- \
 			CC="$TC_DIR"/bin/clang
+			LD=ld.lld
+			AS=llvm-as
 			CONFIG_NO_ERROR_ON_MISMATCH=y
 		)
 	elif [ $COMPILER = "gcc" ]
