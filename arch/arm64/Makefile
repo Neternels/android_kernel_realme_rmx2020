@@ -66,11 +66,17 @@ else
 KBUILD_CFLAGS	+= -mgeneral-regs-only
 endif
 #ifdef CONFIG_MACH_MT6768
+CL_FLAGS += -O3 -mcpu=cortex-a55+crypto+crc
+GC_FLAGS += -O3 -mcpu=cortex-a75.cortex-a55+crypto+crc
 ifeq ($(cc-name),gcc)
-KBUILD_CFLAGS   += -mcpu=cortex-a75.cortex-a55 -mtune=cortex-a75.cortex-a55
+KBUILD_CFLAGS  += $(GC_FLAGS)
+KBUILD_AFLAGS  += $(GC_FLAGS)
+KBUILD_LDFLAGS += $(GC_FLAGS)
 endif
 ifeq ($(cc-name),clang)
-KBUILD_CFLAGS   += -mcpu=cortex-a55 -mtune=cortex-a55
+KBUILD_CFLAGS  += $(CL_FLAGS)
+KBUILD_AFLAGS  += $(CL_FLAGS)
+KBUILD_LDFLAGS += $(CL_FLAGS)
 endif
 #endif
 KBUILD_CFLAGS	+= $(lseinstr) $(brokengasinst)
