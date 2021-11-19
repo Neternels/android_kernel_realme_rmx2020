@@ -284,6 +284,9 @@ build_kernel() {
 			CC="$TC_DIR"/bin/clang
 			LD=ld.lld
 			AS=llvm-as
+			AR=llvm-ar
+			NM=llvm-nm
+			OBJCOPY=llvm-objcopy
 			CONFIG_NO_ERROR_ON_MISMATCH=y
 		)
 	elif [ $COMPILER = "gcc" ]
