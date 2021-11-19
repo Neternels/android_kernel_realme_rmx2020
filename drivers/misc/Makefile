@@ -59,6 +59,7 @@ obj-$(CONFIG_PCI_ENDPOINT_TEST)	+= pci_endpoint_test.o
 
 obj-$(CONFIG_UID_SYS_STATS)	+= uid_sys_stats.o
 obj-$(CONFIG_MEMORY_STATE_TIME)	+= memory_state_time.o
+obj-$(CONFIG_KPROFILES)	        += kprofiles.o
 obj-$(CONFIG_MEDIATEK_SOLUTION) += mediatek/
 
 #ifdef VENDOR_EDIT
