@@ -288,6 +288,7 @@ build_kernel() {
 			NM=llvm-nm
 			OBJCOPY=llvm-objcopy
 			CONFIG_NO_ERROR_ON_MISMATCH=y
+			CONFIG_DEBUG_SECTION_MISMATCH=y
 		)
 	elif [ $COMPILER = "gcc" ]
 	then
