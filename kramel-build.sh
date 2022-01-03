@@ -74,7 +74,7 @@ MODULES=0
 
 # Specify compiler. 
 # 'clang' or 'gcc'
-COMPILER=clang
+COMPILER=gcc
 
 # Clean source prior building. 1 is NO(default) | 0 is YES
 INCREMENTAL=1
@@ -293,7 +293,14 @@ build_kernel() {
 	then
 		MAKE+=(
 			CROSS_COMPILE_ARM32=arm-eabi- \
-			CROSS_COMPILE=aarch64-elf-
+			CROSS_COMPILE=aarch64-elf- \
+			LD=aarch64-elf-ld.lld \
+			AR=llvm-ar \
+			NM=llvm-nm \
+			OBJCOPY=llvm-objcopy \
+			OBJDUMP=llvm-objdump \
+			CC=aarch64-elf-gcc \
+			STRIP=llvm-strip
 		)
 	fi
 	
