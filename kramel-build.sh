@@ -301,7 +301,8 @@ build_kernel() {
 			OBJCOPY=llvm-objcopy \
 			OBJDUMP=llvm-objdump \
 			CC=aarch64-elf-gcc \
-			STRIP=llvm-strip
+			STRIP=llvm-strip \
+			CONFIG_DEBUG_SECTION_MISMATCH=y
 		)
 	fi
 	
