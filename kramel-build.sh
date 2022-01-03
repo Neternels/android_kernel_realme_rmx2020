@@ -280,7 +280,7 @@ build_kernel() {
 		MAKE+=(
 			CROSS_COMPILE=aarch64-linux-gnu- \
 			CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-			CKANG_TRIPLE=aarch64-linux-gnu- \
+			CLANG_TRIPLE=aarch64-linux-gnu- \
 			CC="$TC_DIR"/bin/clang
 			LD=ld.lld
 			AS=llvm-as
