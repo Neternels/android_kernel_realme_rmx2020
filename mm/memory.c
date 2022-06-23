@@ -70,7 +70,6 @@
 #include <linux/userfaultfd_k.h>
 #include <linux/dax.h>
 #include <linux/oom.h>
-#include <linux/mm_inline.h>
 
 #include <trace/events/kmem.h>
 
@@ -3185,21 +3184,6 @@ void unmap_mapping_range(struct address_space *mapping,
 }
 EXPORT_SYMBOL(unmap_mapping_range);
 
-static void lru_gen_swap_refault(struct page *page, swp_entry_t entry)
-{
-	if (lru_gen_enabled()) {
-		void *item;
-		struct address_space *mapping = swap_address_space(entry);
-		pgoff_t index = swp_offset(entry);
-
-		rcu_read_lock();
-		item = radix_tree_lookup(&mapping->page_tree, index);
-		rcu_read_unlock();
-		if (radix_tree_exceptional_entry(item))
-			lru_gen_refault(page, item);
-	}
-}
-
 /*
  * We enter with non-exclusive mmap_sem (to exclude vma changes,
  * but allow concurrent faults), and pte mapped but not yet locked.
@@ -3215,13 +3199,12 @@ int do_swap_page(struct vm_fault *vmf)
 	struct mem_cgroup *memcg;
 	struct vma_swap_readahead swap_ra;
 	swp_entry_t entry;
-	struct swap_info_struct *si;
-        bool skip_swapcache = false;
 	pte_t pte;
 	int locked;
 	int exclusive = 0;
 	int ret;
 	bool vma_readahead = swap_use_vma_readahead();
+	bool vma_readmore = vma_readahead || !!page_cluster;
 
 	if (vma_readahead)
 		page = swap_readahead_detect(vmf, &swap_ra);
@@ -3262,34 +3245,11 @@ int do_swap_page(struct vm_fault *vmf)
 		goto out;
 	}
 	delayacct_set_flag(DELAYACCT_PF_SWAPIN);
-	/*
-         * lookup_swap_cache below can fail and before the SWP_SYNCHRONOUS_IO
-         * check is made, another process can populate the swapcache, delete
-         * the swap entry and decrement the swap count. So decide on taking
-         * the SWP_SYNCHRONOUS_IO path before the lookup. In the event of the
-         * race described, the victim process will find a swap_count > 1
-         * and can then take the readahead path instead of SWP_SYNCHRONOUS_IO.
-         */
-        si = swp_swap_info(entry);
-        if (si->flags & SWP_SYNCHRONOUS_IO && swp_swapcount(entry) == 1)
-                skip_swapcache = true;
-
-	page = lookup_swap_cache(entry, vma, vmf->address);
-        swapcache = page;
-
+	if (!page)
+		page = lookup_swap_cache(entry, vma_readahead ? vma : NULL,
+					 vmf->address);
 	if (!page) {
-		if (skip_swapcache) {
-			page = alloc_page_vma(GFP_HIGHUSER_MOVABLE, vma,
-							vmf->address);
-			if (page) {
-				__SetPageLocked(page);
-				__SetPageSwapBacked(page);
-				set_page_private(page, entry.val);
-				lru_gen_swap_refault(page, entry);
-				lru_cache_add_anon(page);
-				swap_readpage(page, true);
-			}
-		} else if (vmf->flags & FAULT_FLAG_SPECULATIVE) {
+		if (vma_readmore && (vmf->flags & FAULT_FLAG_SPECULATIVE)) {
 			/*
 			 * Don't try readahead during a speculative page fault
 			 * as the VMA's boundaries may change in our back.
@@ -4785,9 +4745,10 @@ int __handle_speculative_fault(struct mm_struct *mm, unsigned long address,
 		goto out_put;
 	}
 
-	task_enter_user_fault();
+	mem_cgroup_oom_enable();
 	ret = handle_pte_fault(&vmf);
-	task_exit_user_fault();
+	/* NOTE: vmf.pte should be unmapped after handle_pte_fault */
+	mem_cgroup_oom_disable();
 
 	put_vma(vma);
 
@@ -4841,7 +4802,7 @@ int handle_mm_fault(struct vm_area_struct *vma, unsigned long address,
 	 * space.  Kernel faults are handled more gracefully.
 	 */
 	if (flags & FAULT_FLAG_USER)
-		task_enter_user_fault();
+		mem_cgroup_oom_enable();
 
 	if (unlikely(is_vm_hugetlb_page(vma)))
 		ret = hugetlb_fault(vma->vm_mm, vma, address, flags);
@@ -4849,7 +4810,7 @@ int handle_mm_fault(struct vm_area_struct *vma, unsigned long address,
 		ret = __handle_mm_fault(vma, address, flags);
 
 	if (flags & FAULT_FLAG_USER) {
-		task_exit_user_fault();
+		mem_cgroup_oom_disable();
 		/*
 		 * The task may have entered a memcg OOM situation but
 		 * if the allocation error was handled gracefully (no

@@ -727,9 +727,8 @@ static void show_smap_vma_flags(struct seq_file *m, struct vm_area_struct *vma)
 		if (!mnemonics[i][0])
 			continue;
 		if (vma->vm_flags & (1UL << i)) {
-			seq_putc(m, mnemonics[i][0]);
-			seq_putc(m, mnemonics[i][1]);
-			seq_putc(m, ' ');
+			seq_printf(m, "%c%c ",
+				   mnemonics[i][0], mnemonics[i][1]);
 		}
 	}
 	seq_putc(m, '\n');
@@ -1819,7 +1818,7 @@ cont:
 		if (!page)
 			continue;
 
-		if (isolate_lru_page(compound_head(page)))
+		if (isolate_lru_page(page))
 			continue;
 
 		list_add(&page->lru, &page_list);
